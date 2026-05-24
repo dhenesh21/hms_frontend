@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: 'http://127.0.0.1:8000',
   headers: { 'Content-Type': 'application/json' }
 })
 
@@ -50,7 +50,7 @@ export const authService = {
     formData.append('password', password)
 
     const response = await api.post(
-      '/auth/login',
+      '/api/auth/login',
       formData,
       {
         headers: {
@@ -119,7 +119,7 @@ export const authService = {
   },
 }
 
-export default api
+
 
 // Auth
 // export const authService = {
@@ -169,3 +169,59 @@ export const opdService = {
   getFollowUps: (params?: any) => api.get('/opd/follow-ups', { params }),
   getDashboard: () => api.get('/opd/dashboard/stats'),
 }
+
+export const billingService = {
+  listServices: (p?: any) => api.get('/billing/services', { params: p }),
+  createService: (d: any) => api.post('/billing/services', d),
+  listPackages: () => api.get('/billing/packages'),
+  createPackage: (d: any) => api.post('/billing/packages', d),
+  createBill: (d: any) => api.post('/billing/bills', d),
+  listBills: (p?: any) => api.get('/billing/bills', { params: p }),
+  getBill: (id: number) => api.get(`/billing/bills/${id}`),
+  updateBill: (id: number, d: any) => api.put(`/billing/bills/${id}`, d),
+  recordPayment: (d: any) => api.post('/billing/payments', d),
+  getPayments: (billId: number) => api.get(`/billing/payments/${billId}`),
+  collectAdvance: (d: any) => api.post('/billing/advance', d),
+  getAdvances: (patientId: number) => api.get(`/billing/advance/${patientId}`),
+  approveDiscount: (d: any) => api.post('/billing/bills/discount-approval', d),
+  dailyReport: (date?: string) => api.get('/billing/reports/daily', { params: { report_date: date } }),
+  outstandingReport: () => api.get('/billing/reports/outstanding'),
+  getDashboard: () => api.get('/billing/dashboard/stats'),
+}
+
+// Pharmacy
+export const pharmacyService = {
+  listDrugs: (p?: any) => api.get('/pharmacy/drugs', { params: p }),
+  createDrug: (d: any) => api.post('/pharmacy/drugs', d),
+  getDrugStock: (drugId: number) => api.get(`/pharmacy/drugs/${drugId}/stock`),
+  addStock: (d: any) => api.post('/pharmacy/stock', d),
+  listSuppliers: () => api.get('/pharmacy/suppliers'),
+  createSupplier: (d: any) => api.post('/pharmacy/suppliers', d),
+  createPO: (d: any) => api.post('/pharmacy/purchase-orders', d),
+  listPOs: () => api.get('/pharmacy/purchase-orders'),
+  receivePO: (id: number) => api.put(`/pharmacy/purchase-orders/${id}/receive`),
+  dispense: (d: any) => api.post('/pharmacy/dispense', d),
+  listDispenses: (p?: any) => api.get('/pharmacy/dispense', { params: p }),
+  getAlerts: () => api.get('/pharmacy/alerts'),
+  getDashboard: () => api.get('/pharmacy/dashboard/stats'),
+}
+
+// Insurance
+export const insuranceService = {
+  listCompanies: () => api.get('/insurance/companies'),
+  createCompany: (d: any) => api.post('/insurance/companies', d),
+  listPolicies: (p?: any) => api.get('/insurance/policies', { params: p }),
+  createPolicy: (d: any) => api.post('/insurance/policies', d),
+  getPolicy: (id: number) => api.get(`/insurance/policies/${id}`),
+  createClaim: (d: any) => api.post('/insurance/claims', d),
+  listClaims: (p?: any) => api.get('/insurance/claims', { params: p }),
+  getClaim: (id: number) => api.get(`/insurance/claims/${id}`),
+  updateClaim: (id: number, d: any) => api.put(`/insurance/claims/${id}`, d),
+  requestPreauth: (claimId: number) => api.post(`/insurance/claims/${claimId}/request-preauth`),
+  preauthResponse: (claimId: number, d: any) => api.post(`/insurance/claims/${claimId}/preauth-response`, d),
+  submitClaim: (claimId: number, ref?: string) => api.post(`/insurance/claims/${claimId}/submit`, null, { params: { submission_reference: ref } }),
+  addDocument: (claimId: number, d: any) => api.post(`/insurance/claims/${claimId}/documents`, d),
+  getDashboard: () => api.get('/insurance/dashboard/stats'),
+}
+
+export default api
