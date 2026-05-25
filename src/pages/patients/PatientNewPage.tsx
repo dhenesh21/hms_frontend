@@ -40,18 +40,22 @@ export default function PatientNewPage() {
 
   const { register, handleSubmit, formState: { errors } } = useForm()
 
-  const onSubmit = async (data: any) => {
-    setLoading(true)
-    try {
-      const res = await patientService.create(data)
-      toast.success(`Patient registered! UHID: ${res.data.uhid}`)
-      navigate(`/patients/${res.data.id}`)
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Registration failed')
-    } finally {
-      setLoading(false)
-    }
+const onSubmit = async (data: any) => {
+  setLoading(true)
+  try {
+    // Empty strings → null
+    const cleaned = Object.fromEntries(
+      Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
+    )
+    const res = await patientService.create(cleaned)
+    toast.success(`Patient registered! UHID: ${res.data.uhid}`)
+    navigate(`/patients/${res.data.id}`)
+  } catch (err: any) {
+    toast.error(err.response?.data?.detail || 'Registration failed')
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
