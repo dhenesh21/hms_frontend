@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const res = await authService.login(data.email, data.password)
-      const { access_token, refresh_token, user } = res.data
+      const { access_token, refresh_token, user } = res
       setAuth(user, access_token, refresh_token)
       toast.success(`Welcome, ${user.full_name}!`)
       navigate('/dashboard')

@@ -42,52 +42,57 @@ export const authService = {
     email: string,
     password: string
   ) => {
+    try {
 
-    // FastAPI OAuth2 expects form-data
-    const formData = new URLSearchParams()
+      const response = await axios.post(
+        'http://127.0.0.1:8000/api/auth/login',
+        { email, password },
+        {
+          headers: {
+           'Content-Type': 'application/json',
+          },
+        }
+      )
 
-    formData.append('username', email)
-    formData.append('password', password)
-
-    const response = await api.post(
-      '/api/auth/login',
-      formData,
-      {
-        headers: {
-          'Content-Type':
-            'application/x-www-form-urlencoded',
-        },
+      // Save tokens
+      if (response.data.access_token) {
+        localStorage.setItem(
+          'access_token',
+          response.data.access_token
+        )
       }
-    )
 
-    // Save tokens
-    if (response.data.access_token) {
-      localStorage.setItem(
-        'access_token',
-        response.data.access_token
+      if (response.data.refresh_token) {
+        localStorage.setItem(
+          'refresh_token',
+          response.data.refresh_token
+        )
+      }
+
+      return response.data
+
+    } catch (error: any) {
+
+      console.log(error.response?.data)
+
+      throw new Error(
+        error.response?.data?.detail?.[0]?.msg ||
+        error.response?.data?.detail ||
+        'Login failed'
       )
     }
-
-    if (response.data.refresh_token) {
-      localStorage.setItem(
-        'refresh_token',
-        response.data.refresh_token
-      )
-    }
-
-    return response.data
   },
 
   // CURRENT USER
   me: async () => {
-    const response = await api.get('/auth/me')
+    const response = await api.get('/api/auth/me')
     return response.data
   },
 
   // CHANGE PASSWORD
   changePassword: async (data: any) => {
     const response = await api.put(
-      '/auth/change-password',
+      '/api/auth/change-password',
       data
     )
 
@@ -96,14 +101,14 @@ export const authService = {
 
   // LIST USERS
   listUsers: async () => {
-    const response = await api.get('/auth/users')
+    const response = await api.get('/api/auth/users')
     return response.data
   },
 
   // CREATE USER
   createUser: async (data: any) => {
     const response = await api.post(
-      '/auth/register',
+      '/api/auth/register',
       data
     )
 
@@ -133,13 +138,13 @@ export const authService = {
 
 // Patients
 export const patientService = {
-  list: (params?: any) => api.get('/patients', { params }),
-  get: (id: number) => api.get(`/patients/${id}`),
-  getByUhid: (uhid: string) => api.get(`/patients/uhid/${uhid}`),
-  create: (data: any) => api.post('/patients', data),
-  update: (id: number, data: any) => api.put(`/patients/${id}`, data),
-  delete: (id: number) => api.delete(`/patients/${id}`),
-  history: (id: number) => api.get(`/patients/${id}/history`),
+  list: (params?: any) => api.get('/api/patients', { params }),
+  get: (id: number) => api.get(`/api/patients/${id}`),
+  getByUhid: (uhid: string) => api.get(`/api/patients/uhid/${uhid}`),
+  create: (data: any) => api.post('/api/patients', data),
+  update: (id: number, data: any) => api.put(`/api/patients/${id}`, data),
+  delete: (id: number) => api.delete(`/api/patients/${id}`),
+  history: (id: number) => api.get(`/api/patients/${id}/history`),
 }
 
 // Doctors
