@@ -2,7 +2,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import {
   Hospital, LayoutDashboard, Users, UserRound, Calendar,
-  Stethoscope, LogOut, ChevronRight, Bell
+  Stethoscope,  BedDouble, FileText, HeartPulse, FlaskConical, ScanLine, ActivitySquare,
+  Receipt, Pill, ShieldCheck, Briefcase, BarChart3, Settings, LogOut, ChevronRight, Bell
 } from 'lucide-react'
 
 const navItems = [
@@ -11,6 +12,18 @@ const navItems = [
   { to: '/doctors', icon: UserRound, label: 'Doctors' },
   { to: '/appointments', icon: Calendar, label: 'Appointments' },
   { to: '/opd', icon: Stethoscope, label: 'OPD' },
+  { to: '/ipd', icon: BedDouble, label: 'IPD' },
+  { to: '/emr', icon: FileText, label: 'EMR' },
+  { to: '/nursing', icon: HeartPulse, label: 'Nursing' },
+  { to: '/lab', icon: FlaskConical, label: 'Lab' },
+  { to: '/radiology', icon: ScanLine, label: 'Radiology' },
+  { to: '/ot', icon: ActivitySquare, label: 'OT' },
+  { to: '/billing', icon: Receipt, label: 'Billing' },
+  { to: '/pharmacy', icon: Pill, label: 'Pharmacy' },
+  { to: '/insurance', icon: ShieldCheck, label: 'Insurance' },
+  { to: '/hr', icon: Briefcase, label: 'HR' },
+  { to: '/reports', icon: BarChart3, label: 'Reports' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
