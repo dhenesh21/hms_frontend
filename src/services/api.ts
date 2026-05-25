@@ -194,6 +194,103 @@ export const billingService = {
   getDashboard: () => api.get('/billing/dashboard/stats'),
 }
 
+// IPD
+export const ipdService = {
+  listWards: () => api.get('/ipd/wards'),
+  createWard: (d: any) => api.post('/ipd/wards', d),
+  getWardBeds: (wardId: number, status?: string) =>
+    api.get(`/ipd/wards/${wardId}/beds`, { params: { status } }),
+  getAvailableBeds: (wardId?: number) =>
+    api.get('/ipd/beds/available', { params: { ward_id: wardId } }),
+  createBed: (d: any) => api.post('/ipd/beds', d),
+  admit: (d: any) => api.post('/ipd/admissions', d),
+  listAdmissions: (p?: any) => api.get('/ipd/admissions', { params: p }),
+  getActiveAdmissions: () => api.get('/ipd/admissions/active'),
+  getAdmission: (id: number) => api.get(`/ipd/admissions/${id}`),
+  updateAdmission: (id: number, d: any) => api.put(`/ipd/admissions/${id}`, d),
+  addNursingNote: (d: any) => api.post('/ipd/nursing-notes', d),
+  getNursingNotes: (admissionId: number) => api.get(`/ipd/nursing-notes/${admissionId}`),
+  addProgressNote: (d: any) => api.post('/ipd/progress-notes', d),
+  getProgressNotes: (admissionId: number) => api.get(`/ipd/progress-notes/${admissionId}`),
+  recordVitals: (d: any) => api.post('/ipd/vitals', d),
+  getVitals: (admissionId: number) => api.get(`/ipd/vitals/${admissionId}`),
+  getDashboard: () => api.get('/ipd/dashboard/stats'),
+}
+
+// EMR
+export const emrService = {
+  getFullEMR: (patientId: number) => api.get(`/emr/patient/${patientId}`),
+  addAllergy: (d: any) => api.post('/emr/allergies', d),
+  getAllergies: (patientId: number) => api.get(`/emr/allergies/${patientId}`),
+  deleteAllergy: (id: number) => api.delete(`/emr/allergies/${id}`),
+  addCondition: (d: any) => api.post('/emr/conditions', d),
+  getConditions: (patientId: number) => api.get(`/emr/conditions/${patientId}`),
+  addMedication: (d: any) => api.post('/emr/medications', d),
+  getMedications: (patientId: number, currentOnly = false) =>
+    api.get(`/emr/medications/${patientId}`, { params: { current_only: currentOnly } }),
+  addFamilyHistory: (d: any) => api.post('/emr/family-history', d),
+  getFamilyHistory: (patientId: number) => api.get(`/emr/family-history/${patientId}`),
+  addSurgicalHistory: (d: any) => api.post('/emr/surgical-history', d),
+  getSurgicalHistory: (patientId: number) => api.get(`/emr/surgical-history/${patientId}`),
+  addImmunization: (d: any) => api.post('/emr/immunizations', d),
+  getImmunizations: (patientId: number) => api.get(`/emr/immunizations/${patientId}`),
+  addDocument: (d: any) => api.post('/emr/documents', d),
+  getDocuments: (patientId: number, docType?: string) =>
+    api.get(`/emr/documents/${patientId}`, { params: { doc_type: docType } }),
+  addDiagnosis: (d: any) => api.post('/emr/diagnosis', d),
+  getDiagnoses: (patientId: number) => api.get(`/emr/diagnosis/${patientId}`),
+}
+
+// Lab
+export const labService = {
+  listTests: (p?: any) => api.get('/lab/tests', { params: p }),
+  createTest: (d: any) => api.post('/lab/tests', d),
+  createOrder: (d: any) => api.post('/lab/orders', d),
+  listOrders: (p?: any) => api.get('/lab/orders', { params: p }),
+  getOrder: (id: number) => api.get(`/lab/orders/${id}`),
+  collectSamples: (d: any) => api.post('/lab/sample-collection', d),
+  receiveSample: (itemId: number) => api.put(`/lab/sample-received/${itemId}`),
+  enterResult: (d: any) => api.post('/lab/results', d),
+  approveResult: (itemId: number) => api.put(`/lab/approve/${itemId}`),
+  rejectSample: (itemId: number, reason: string) =>
+    api.put(`/lab/reject/${itemId}`, null, { params: { reason } }),
+  getPending: () => api.get('/lab/pending'),
+  getDashboard: () => api.get('/lab/dashboard/stats'),
+}
+
+// OT
+export const otService = {
+  listTheatres: () => api.get('/ot/theatres'),
+  createTheatre: (d: any) => api.post('/ot/theatres', d),
+  updateTheatreStatus: (id: number, status: string) =>
+    api.put(`/ot/theatres/${id}/status`, null, { params: { status } }),
+  scheduleSurgery: (d: any) => api.post('/ot/surgeries', d),
+  listSurgeries: (p?: any) => api.get('/ot/surgeries', { params: p }),
+  todaySurgeries: () => api.get('/ot/surgeries/today'),
+  getSurgery: (id: number) => api.get(`/ot/surgeries/${id}`),
+  updateSurgery: (id: number, d: any) => api.put(`/ot/surgeries/${id}`, d),
+  completePreOp: (id: number, checklist: any) =>
+    api.put(`/ot/surgeries/${id}/pre-op-complete`, checklist),
+  addConsumable: (d: any) => api.post('/ot/consumables', d),
+  getConsumables: (surgeryId: number) => api.get(`/ot/consumables/${surgeryId}`),
+  getDashboard: () => api.get('/ot/dashboard/stats'),
+}
+
+// Radiology
+export const radiologyService = {
+  createOrder: (d: any) => api.post('/radiology/orders', d),
+  listOrders: (p?: any) => api.get('/radiology/orders', { params: p }),
+  getOrder: (id: number) => api.get(`/radiology/orders/${id}`),
+  updateStatus: (id: number, status: string) =>
+    api.put(`/radiology/orders/${id}/status`, null, { params: { status } }),
+  submitReport: (id: number, d: any) => api.put(`/radiology/orders/${id}/report`, d),
+  addImage: (orderId: number, fileName: string, filePath: string, viewType?: string) =>
+    api.post(`/radiology/orders/${orderId}/images`, null,
+      { params: { file_name: fileName, file_path: filePath, view_type: viewType } }),
+  getPending: () => api.get('/radiology/pending'),
+  getDashboard: () => api.get('/radiology/dashboard/stats'),
+}
+
 // Pharmacy
 export const pharmacyService = {
   listDrugs: (p?: any) => api.get('/pharmacy/drugs', { params: p }),
@@ -227,6 +324,84 @@ export const insuranceService = {
   submitClaim: (claimId: number, ref?: string) => api.post(`/insurance/claims/${claimId}/submit`, null, { params: { submission_reference: ref } }),
   addDocument: (claimId: number, d: any) => api.post(`/insurance/claims/${claimId}/documents`, d),
   getDashboard: () => api.get('/insurance/dashboard/stats'),
+}
+
+// HR Service
+export const hrService = {
+  // Departments
+  listDepartments: () => api.get('/hr/departments'),
+  createDepartment: (d: any) => api.post('/hr/departments', d),
+
+  // Designations
+  listDesignations: (deptId?: number) => api.get('/hr/designations', { params: { department_id: deptId } }),
+  createDesignation: (d: any) => api.post('/hr/designations', d),
+
+  // Staff
+  listStaff: (p?: any) => api.get('/hr/staff', { params: p }),
+  getStaff: (id: number) => api.get(`/hr/staff/${id}`),
+  createStaff: (d: any) => api.post('/hr/staff', d),
+  updateStaff: (id: number, d: any) => api.put(`/hr/staff/${id}`, d),
+
+  // Attendance
+  markAttendance: (d: any) => api.post('/hr/attendance', d),
+  bulkAttendance: (d: any) => api.post('/hr/attendance/bulk', d),
+  getAttendance: (p?: any) => api.get('/hr/attendance', { params: p }),
+  getAttendanceSummary: (staffId: number, month: number, year: number) =>
+    api.get(`/hr/attendance/summary/${staffId}`, { params: { month, year } }),
+
+  // Leaves
+  applyLeave: (d: any) => api.post('/hr/leaves', d),
+  listLeaves: (p?: any) => api.get('/hr/leaves', { params: p }),
+  approveLeave: (id: number, d: any) => api.put(`/hr/leaves/${id}/approve`, d),
+  getLeaveBalance: (staffId: number, year?: number) =>
+    api.get(`/hr/leaves/balance/${staffId}`, { params: { year } }),
+
+  // Holidays
+  listHolidays: (year?: number) => api.get('/hr/holidays', { params: { year } }),
+  createHoliday: (d: any) => api.post('/hr/holidays', d),
+
+  // Payroll
+  generatePayroll: (d: any) => api.post('/hr/payroll/generate', d),
+  listPayrolls: (p?: any) => api.get('/hr/payroll', { params: p }),
+  updatePayroll: (id: number, d: any) => api.put(`/hr/payroll/${id}`, d),
+  getPayslip: (id: number) => api.get(`/hr/payroll/${id}/payslip`),
+
+  // Dashboard
+  getDashboard: () => api.get('/hr/dashboard/stats'),
+}
+
+// Nursing Service
+export const nursingService = {
+  // MAR
+  createMAR: (d: any) => api.post('/nursing/mar', d),
+  getMARForAdmission: (admissionId: number, activeOnly?: boolean) =>
+    api.get(`/nursing/mar/${admissionId}`, { params: { active_only: activeOnly } }),
+  discontinueMAR: (marId: number) => api.delete(`/nursing/mar/${marId}`),
+  getPendingDoses: (admissionId: number) => api.get(`/nursing/pending-doses/${admissionId}`),
+
+  // Administration
+  recordAdministration: (d: any) => api.post('/nursing/administer', d),
+  getAdministrations: (marId: number, fromDate?: string) =>
+    api.get(`/nursing/administer/${marId}`, { params: { from_date: fromDate } }),
+
+  // Assessments
+  createAssessment: (d: any) => api.post('/nursing/assessments', d),
+  getAssessments: (admissionId: number, type?: string) =>
+    api.get(`/nursing/assessments/${admissionId}`, { params: { assessment_type: type } }),
+
+  // Care Plans
+  createCarePlan: (d: any) => api.post('/nursing/care-plans', d),
+  getCarePlans: (admissionId: number) => api.get(`/nursing/care-plans/${admissionId}`),
+  updateCarePlan: (id: number, d: any) => api.put(`/nursing/care-plans/${id}`, d),
+  addIntervention: (planId: number, d: any) => api.post(`/nursing/care-plans/${planId}/interventions`, d),
+
+  // Handover
+  createHandover: (d: any) => api.post('/nursing/handover', d),
+  listHandovers: (p?: any) => api.get('/nursing/handover', { params: p }),
+  receiveHandover: (id: number) => api.put(`/nursing/handover/${id}/receive`),
+
+  // Dashboard
+  getDashboard: (admissionId: number) => api.get(`/nursing/dashboard/stats/${admissionId}`),
 }
 
 export default api
