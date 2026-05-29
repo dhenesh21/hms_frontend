@@ -3,8 +3,9 @@ import { useAuthStore } from '../../store/authStore'
 import {
   Hospital, LayoutDashboard, Users, UserRound, Calendar,
   Stethoscope,  BedDouble, FileText, HeartPulse, FlaskConical, ScanLine, ActivitySquare,
-  Receipt, Pill, ShieldCheck, Briefcase, BarChart3, Settings, LogOut, ChevronRight, Bell
+  Receipt, Pill, ShieldCheck, Briefcase, BarChart3, Settings, LogOut, ChevronRight, Bell, ChevronDown, ChevronUp
 } from 'lucide-react'
+import { useState } from 'react'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -26,9 +27,25 @@ const navItems = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
+const adminItems = [
+  { to: '/admin/users', label: 'All Users' },
+  { to: '/admin/users/new', label: 'Register Staff' },
+  { to: '/admin/staff/doctors', label: 'Doctors' },
+  { to: '/admin/staff/nurses', label: 'Nurses' },
+  { to: '/admin/staff/receptionists', label: 'Receptionists' },
+  { to: '/admin/staff/lab', label: 'Lab Technicians' },
+  { to: '/admin/staff/pharmacists', label: 'Pharmacists' },
+  { to: '/admin/staff/accountants', label: 'Accountants' },
+  { to: '/admin/staff/others', label: 'Other Staff' },
+  { to: '/admin/departments', label: 'Departments' },
+  { to: '/admin/roles', label: 'Roles' },
+]
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+  const [adminOpen, setAdminOpen] = useState(false)
+  const isAdmin = user?.role === 'admin'
 
   const handleLogout = () => {
     logout()
@@ -66,6 +83,37 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               {label}
             </NavLink>
           ))}
+
+          {/* Admin Section — only for admin role */}
+          {isAdmin && (
+            <div className="pt-2">
+              <button
+                onClick={() => setAdminOpen(!adminOpen)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">
+                <div className="flex items-center gap-3">
+                  <Settings size={18} />
+                  <span>Admin Panel</span>
+                </div>
+                {adminOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+
+              {adminOpen && (
+                <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-blue-100 pl-3">
+                  {adminItems.map(({ to, label }) => (
+                    <NavLink key={to} to={to}
+                      className={({ isActive }) =>
+                        `block px-2 py-1.5 rounded-lg text-xs transition
+                        ${isActive
+                          ? 'bg-blue-50 text-blue-700 font-medium'
+                          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`
+                      }>
+                      {label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
         {/* User */}

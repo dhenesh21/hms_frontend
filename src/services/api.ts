@@ -559,6 +559,8 @@ export const authService = {
     return response.data
   },
 
+  updateUser: (id: number, data: any) => api.put(`/auth/users/${id}`, data),
+
   logout: () => {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')

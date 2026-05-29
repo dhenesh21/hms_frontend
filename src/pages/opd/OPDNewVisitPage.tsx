@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { opdService, patientService, doctorService } from '../../services/api'
+import { opdService, patientService, doctorService, authService } from '../../services/api'
 import { ArrowLeft, Plus, Trash2, Save, Stethoscope } from 'lucide-react'
 
 function Label({ children }: any) {
@@ -19,6 +19,25 @@ export default function OPDNewVisitPage() {
     defaultValues: {
       patient_id: '',
       doctor_id: '',
+      temperature: '',
+      pulse_rate: '',
+      blood_pressure_systolic: '',
+      blood_pressure_diastolic: '',
+      oxygen_saturation: '',
+      respiratory_rate: '',
+      height_cm: '',
+      weight_kg: '',
+      chief_complaint: '',
+      history_of_present_illness: '',
+      physical_examination: '',
+      clinical_notes: '',
+      primary_diagnosis: '',
+      secondary_diagnosis: '',
+      treatment_plan: '',
+      advice: '',
+      follow_up_required: false,
+      follow_up_date: '',
+      referred_to: '',
       prescriptions: [{ drug_name: '', dosage: '', frequency: '', duration_days: 7, route: 'oral', quantity: 0 }]
     }
   })
@@ -33,7 +52,10 @@ export default function OPDNewVisitPage() {
 
   const { data: doctors } = useQuery({
     queryKey: ['doctors'],
-    queryFn: () => doctorService.list().then(r => r.data)
+    queryFn: async () => {
+      const users = await authService.listUsers()
+      return users.filter((u: any) => u.role === 'doctor')
+    }
   })
 
   const onSubmit = async (data: any) => {
@@ -102,7 +124,7 @@ export default function OPDNewVisitPage() {
               <select {...register('doctor_id', { required: true })} className={`${inputCls} bg-white`}>
                 <option value="">Select doctor</option>
                 {doctors?.map((d: any) => (
-                  <option key={d.id} value={d.id}>{d.full_name} — {d.specialization}</option>
+                  <option key={d.id} value={d.id}>{d.full_name} — {d.department}</option>
                 ))}
               </select>
             </div>

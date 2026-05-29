@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { opdService, patientService, appointmentService } from '../../src/services/api'
 import { Users, Calendar, Stethoscope, TrendingUp, Clock, CheckCircle } from 'lucide-react'
