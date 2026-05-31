@@ -1,161 +1,156 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { otService } from '../../services/api'
-import { Stethoscope, Clock, CheckCircle, AlertCircle, Plus } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { ActivitySquare, Plus, Clock } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 
-const STATUS_COLORS: Record<string, string> = {
-  scheduled: 'bg-blue-100 text-blue-700',
-  confirmed: 'bg-indigo-100 text-indigo-700',
-  pre_op: 'bg-amber-100 text-amber-700',
-  in_progress: 'bg-green-100 text-green-700 animate-pulse',
-  completed: 'bg-gray-100 text-gray-600',
-  cancelled: 'bg-red-100 text-red-600',
-  postponed: 'bg-orange-100 text-orange-700',
-}
+// otService real methods:
+// listTheatres(), createTheatre(data), updateTheatreStatus(id, status),
+// scheduleSurgery(data), listSurgeries(params?), todaySurgeries(),
+// getSurgery(id), updateSurgery(id, data), completePreOp(id, checklist),
+// addConsumable(data), getConsumables(surgeryId), getDashboard()
 
-const OT_STATUS_COLORS: Record<string, string> = {
-  available: 'bg-green-100 border-green-200',
-  booked: 'bg-blue-100 border-blue-200',
-  in_use: 'bg-red-100 border-red-200',
-  cleaning: 'bg-amber-100 border-amber-200',
-  maintenance: 'bg-gray-100 border-gray-200',
+const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+  scheduled:   { label: 'Scheduled',   cls: 'badge-blue' },
+  in_progress: { label: 'In Progress', cls: 'badge-amber' },
+  completed:   { label: 'Completed',   cls: 'badge-green' },
+  cancelled:   { label: 'Cancelled',   cls: 'badge-red' },
+  postponed:   { label: 'Postponed',   cls: 'badge-gray' },
 }
 
 export default function OTPage() {
-  const qc = useQueryClient()
+  const [activeTab, setActiveTab] = useState<'today' | 'all' | 'theatres'>('today')
 
-  const { data: stats } = useQuery({
-    queryKey: ['ot-stats'],
-    queryFn: () => otService.getDashboard().then(r => r.data)
-  })
+  const { data: stats }    = useQuery({ queryKey: ['ot-stats'],    queryFn: () => otService.getDashboard().then((r: any) => r.data) })
+  const { data: today }    = useQuery({ queryKey: ['ot-today'],    queryFn: () => otService.todaySurgeries().then((r: any) => r.data) })
+  const { data: all }      = useQuery({ queryKey: ['ot-all'],      queryFn: () => otService.listSurgeries().then((r: any) => r.data), enabled: activeTab === 'all' })
+  const { data: theatres } = useQuery({ queryKey: ['ot-theatres'], queryFn: () => otService.listTheatres().then((r: any) => r.data), enabled: activeTab === 'theatres' })
 
-  const { data: theatres } = useQuery({
-    queryKey: ['ot-theatres'],
-    queryFn: () => otService.listTheatres().then(r => r.data)
-  })
-
-  const { data: todaySurgeries } = useQuery({
-    queryKey: ['today-surgeries'],
-    queryFn: () => otService.todaySurgeries().then(r => r.data)
-  })
-
-  const updateStatus = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      otService.updateSurgery(id, { status }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['today-surgeries'] }); toast.success('Status updated') }
-  })
+  const surgeries = activeTab === 'today' ? today : all
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div>
+      <div className="page-header">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Operation Theatre</h1>
-          <p className="text-sm text-gray-500">{format(new Date(), 'EEEE, dd MMMM yyyy')}</p>
+          <h1 className="page-title">Operation Theatre</h1>
+          <p className="page-subtitle">OT schedule, surgeries & theatre management</p>
         </div>
-        <Link to="/ot/schedule/new"
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
-          <Plus size={16} /> Schedule Surgery
-        </Link>
+        <button className="btn-primary"><Plus size={15} /> Schedule Surgery</button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid-4" style={{ marginBottom: 24 }}>
         {[
-          { label: "Today's Surgeries", value: stats?.today_surgeries, color: 'text-blue-600' },
-          { label: 'In Progress', value: stats?.in_progress, color: 'text-green-600' },
-          { label: 'Scheduled', value: stats?.scheduled_today, color: 'text-amber-600' },
-          { label: 'Available OTs', value: stats?.available_ots, color: 'text-teal-600' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <p className={`text-2xl font-bold ${color}`}>{value ?? 0}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+          { label: "Today's Surgeries", value: stats?.today_surgeries ?? today?.length ?? 0, cls: 'stat-icon-purple' },
+          { label: 'In Progress',       value: stats?.in_progress ?? 0,    cls: 'stat-icon-amber' },
+          { label: 'Completed',         value: stats?.completed_today ?? 0, cls: 'stat-icon-green' },
+          { label: 'OT Theatres',       value: stats?.total_ots ?? 0,       cls: 'stat-icon-blue' },
+        ].map(({ label, value, cls }) => (
+          <div key={label} className="stat-card">
+            <p style={{ fontSize: 12, color: '#8B5CF6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{label}</p>
+            <p style={{ fontSize: 28, fontWeight: 800, color: '#1E1B4B' }}>{value}</p>
           </div>
         ))}
       </div>
 
-      {/* OT Status Grid */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">Theatre Status</h2>
-        <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-          {theatres?.map((ot: any) => (
-            <div key={ot.id} className={`border rounded-xl p-4 text-center ${OT_STATUS_COLORS[ot.status] || 'bg-gray-50 border-gray-200'}`}>
-              <p className="text-lg font-bold text-gray-800">{ot.ot_number}</p>
-              <p className="text-xs text-gray-600 mt-0.5">{ot.name}</p>
-              <p className="text-xs font-medium mt-1.5 capitalize">{ot.status.replace('_', ' ')}</p>
-            </div>
-          ))}
-          {!theatres?.length && (
-            <p className="col-span-5 text-center text-gray-400 text-sm py-4">No OTs configured</p>
-          )}
-        </div>
+      {/* Tabs */}
+      <div className="tabs" style={{ marginBottom: 20 }}>
+        {(['today', 'all', 'theatres'] as const).map(t => (
+          <button key={t} className={`tab ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>
+            {t === 'today' ? "Today's List" : t === 'all' ? 'All Surgeries' : 'Theatres'}
+          </button>
+        ))}
       </div>
 
-      {/* Today's Schedule */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-700">
-            Today's Schedule ({todaySurgeries?.length ?? 0})
-          </h2>
+      {/* Surgery list (today or all) */}
+      {(activeTab === 'today' || activeTab === 'all') && (
+        <div className="table-wrapper">
+          <table>
+            <thead><tr>
+              <th>Patient</th><th>Procedure</th><th>Surgeon</th>
+              <th>Anaesthesiologist</th><th>Theatre</th><th>Time</th><th>Status</th>
+            </tr></thead>
+            <tbody>
+              {!(surgeries?.length) ? (
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 0', color: '#C4B5FD', fontSize: 13 }}>
+                  {activeTab === 'today' ? 'No surgeries scheduled today' : 'No surgeries found'}
+                </td></tr>
+              ) : (surgeries || []).map((s: any) => (
+                <tr key={s.id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div className="avatar avatar-sm avatar-purple">{s.patient_name?.[0] || 'P'}</div>
+                      <div>
+                        <p style={{ fontWeight: 600, color: '#1E1B4B', fontSize: 13 }}>{s.patient_name}</p>
+                        <p style={{ fontSize: 11, color: '#A78BFA', fontFamily: 'monospace' }}>{s.patient_uhid}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <p style={{ fontWeight: 600, color: '#4C1D95', fontSize: 13 }}>{s.procedure_name}</p>
+                    {s.diagnosis && <p style={{ fontSize: 11, color: '#A78BFA' }}>{s.diagnosis}</p>}
+                  </td>
+                  <td style={{ color: '#374151', fontSize: 13, fontWeight: 500 }}>{s.surgeon_name || '—'}</td>
+                  <td style={{ color: '#374151', fontSize: 13 }}>{s.anaesthesiologist_name || s.anesthesiologist_name || '—'}</td>
+                  <td>
+                    <span className="badge badge-indigo" style={{ fontSize: 10 }}>
+                      {s.theatre_name || `OT-${s.theatre_id}`}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={12} color="#A78BFA" />
+                      <span style={{ fontSize: 13, color: '#374151' }}>
+                        {s.scheduled_start ? format(new Date(s.scheduled_start), 'HH:mm') : s.scheduled_time ? s.scheduled_time.slice(0,5) : '—'}
+                        {s.duration_minutes && ` (${s.duration_minutes}m)`}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`badge ${STATUS_CONFIG[s.status]?.cls || 'badge-gray'}`}>
+                      {STATUS_CONFIG[s.status]?.label || s.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="divide-y divide-gray-50">
-          {todaySurgeries?.map((s: any) => (
-            <div key={s.id} className="px-5 py-4 flex items-center gap-4">
-              {/* Time */}
-              <div className="w-16 text-center flex-shrink-0">
-                <p className="text-sm font-bold text-gray-800">{s.scheduled_start_time}</p>
-                {s.scheduled_end_time && <p className="text-xs text-gray-400">{s.scheduled_end_time}</p>}
-              </div>
+      )}
 
-              {/* Divider */}
-              <div className="w-px h-12 bg-gray-200 flex-shrink-0" />
-
-              {/* Info */}
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">{s.procedure_name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Patient ID: {s.patient_id}
-                  {s.patient_name && ` • ${s.patient_name}`}
-                  {s.ot_name && ` • ${s.ot_name}`}
-                </p>
-                {s.anesthesia_type && (
-                  <p className="text-xs text-gray-400 mt-0.5">Anesthesia: {s.anesthesia_type}</p>
-                )}
+      {/* Theatres tab */}
+      {activeTab === 'theatres' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+          {!(theatres?.length) ? (
+            <p style={{ color: '#C4B5FD', fontSize: 13 }}>No theatres found</p>
+          ) : (theatres || []).map((t: any) => (
+            <div key={t.id} className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: 'linear-gradient(135deg, #7C3AED, #4F46E5)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <ActivitySquare size={20} color="#fff" />
+                </div>
+                <div>
+                  <p style={{ fontWeight: 700, color: '#1E1B4B', fontSize: 14 }}>{t.name}</p>
+                  <span className={`badge ${
+                    t.status === 'available' ? 'badge-green'
+                    : t.status === 'occupied' ? 'badge-red'
+                    : 'badge-gray'
+                  }`} style={{ fontSize: 10, textTransform: 'capitalize' }}>
+                    {t.status || 'Available'}
+                  </span>
+                </div>
               </div>
-
-              {/* Status & Actions */}
-              <div className="flex items-center gap-2">
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[s.status] || 'bg-gray-100 text-gray-600'}`}>
-                  {s.status?.replace('_', ' ')}
-                </span>
-                {s.status === 'scheduled' && (
-                  <button onClick={() => updateStatus.mutate({ id: s.id, status: 'in_progress' })}
-                    className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700">
-                    Start
-                  </button>
-                )}
-                {s.status === 'in_progress' && (
-                  <button onClick={() => updateStatus.mutate({ id: s.id, status: 'completed' })}
-                    className="text-xs bg-gray-600 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700">
-                    Complete
-                  </button>
-                )}
-                <Link to={`/ot/surgeries/${s.id}`} className="text-xs text-blue-600 hover:underline">
-                  Details
-                </Link>
-              </div>
+              {t.location && <p style={{ fontSize: 12, color: '#A78BFA' }}>📍 {t.location}</p>}
+              {t.type && <p style={{ fontSize: 12, color: '#6B7280', marginTop: 4, textTransform: 'capitalize' }}>{t.type}</p>}
             </div>
           ))}
-          {todaySurgeries?.length === 0 && (
-            <div className="text-center py-12">
-              <Stethoscope size={36} className="mx-auto mb-3 text-gray-200" />
-              <p className="text-gray-400">No surgeries scheduled for today</p>
-            </div>
-          )}
         </div>
-      </div>
+      )}
     </div>
   )
 }

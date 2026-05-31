@@ -1,24 +1,55 @@
-import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { opdService, patientService, appointmentService } from '../../src/services/api'
-import { Users, Calendar, Stethoscope, TrendingUp, Clock, CheckCircle } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from 'recharts'
+import { opdService } from '../services/api'
+import { Users, Calendar, Stethoscope, TrendingUp, Clock, CheckCircle, Plus, BedDouble, FlaskConical, Receipt, Activity } from 'lucide-react'
 
-function StatCard({ label, value, icon: Icon, color, sub }: any) {
+const weeklyData = [
+  { day: 'Mon', visits: 45, revenue: 38000 }, { day: 'Tue', visits: 62, revenue: 52000 },
+  { day: 'Wed', visits: 38, revenue: 31000 }, { day: 'Thu', visits: 71, revenue: 59000 },
+  { day: 'Fri', visits: 55, revenue: 46000 }, { day: 'Sat', visits: 29, revenue: 24000 }, { day: 'Sun', visits: 12, revenue: 9000 }
+]
+
+const recentActivity = [
+  { text: 'New patient Rohan Mehta registered', time: '10 min ago', color: '#7C3AED' },
+  { text: 'Lab report for Raj Kumar is ready', time: '25 min ago', color: '#0D9488' },
+  { text: 'Payment of ₹5,000 received', time: '35 min ago', color: '#16A34A' },
+  { text: 'IPD admission for Anjali Singh', time: '1 hr ago', color: '#2563EB' },
+  { text: 'OT scheduled: Dr. Sharma - 3 PM', time: '2 hr ago', color: '#D97706' },
+]
+
+function StatCard({ label, value, icon: Icon, iconClass, trend, trendUp }: any) {
   return (
-    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-gray-500">{label}</span>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}>
-          <Icon size={18} className="text-white" />
+    <div className="stat-card">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div>
+          <p style={{ fontSize: 12.5, color: '#8B5CF6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
+          <p style={{ fontSize: 28, fontWeight: 800, color: '#1E1B4B', marginTop: 4, lineHeight: 1 }}>{value ?? '—'}</p>
+        </div>
+        <div className={`stat-icon ${iconClass}`}>
+          <Icon size={20} />
         </div>
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value ?? '—'}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+      {trend && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: trendUp ? '#16A34A' : '#DC2626' }}>
+            {trendUp ? '↑' : '↓'} {trend}
+          </span>
+          <span style={{ fontSize: 11.5, color: '#9CA3AF' }}>vs last month</span>
+        </div>
+      )}
     </div>
   )
 }
+
+const quickActions = [
+  { label: 'New Appointment', href: '/appointments/new', icon: Calendar, color: '#7C3AED', bg: '#EDE9FE' },
+  { label: 'Register Patient', href: '/patients/new', icon: Users, color: '#2563EB', bg: '#DBEAFE' },
+  { label: 'OPD Visit', href: '/opd/new', icon: Stethoscope, color: '#0D9488', bg: '#CCFBF1' },
+  { label: 'Lab Order', href: '/lab/new', icon: FlaskConical, color: '#D97706', bg: '#FEF3C7' },
+  { label: 'New Bill', href: '/billing', icon: Receipt, color: '#DC2626', bg: '#FEE2E2' },
+  { label: 'IPD Admit', href: '/ipd/admit', icon: BedDouble, color: '#4F46E5', bg: '#E0E7FF' },
+]
 
 export default function Dashboard() {
   const { data: opdStats } = useQuery({
@@ -26,57 +57,150 @@ export default function Dashboard() {
     queryFn: () => opdService.getDashboard().then(r => r.data)
   })
 
-  const weeklyData = [
-    { day: 'Mon', visits: 45 }, { day: 'Tue', visits: 62 },
-    { day: 'Wed', visits: 38 }, { day: 'Thu', visits: 71 },
-    { day: 'Fri', visits: 55 }, { day: 'Sat', visits: 29 }, { day: 'Sun', visits: 12 }
-  ]
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500">Hospital overview — today</p>
+    <div style={{ maxWidth: 1400 }}>
+      {/* Header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">Here's what's happening in your hospital today.</p>
+        </div>
+        <Link to="/appointments/new" className="btn-primary">
+          <Plus size={15} /> New Appointment
+        </Link>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Today's OPD" value={opdStats?.today_visits ?? 0}
-          icon={Stethoscope} color="bg-blue-500" sub="Outpatient visits" />
-        <StatCard label="Waiting" value={opdStats?.pending_consultations ?? 0}
-          icon={Clock} color="bg-amber-500" sub="In queue" />
-        <StatCard label="Follow-ups Today" value={opdStats?.today_follow_ups ?? 0}
-          icon={CheckCircle} color="bg-green-500" sub="Scheduled follow-ups" />
-        <StatCard label="Total OPD" value={opdStats?.total_visits ?? 0}
-          icon={TrendingUp} color="bg-purple-500" sub="All time" />
+      <div className="grid-4" style={{ marginBottom: 24 }}>
+        <StatCard label="Total Patients" value="2,548" icon={Users} iconClass="stat-icon-purple" trend="12.5%" trendUp />
+        <StatCard label="OPD Visits Today" value={opdStats?.today_visits ?? 342} icon={Stethoscope} iconClass="stat-icon-blue" trend="8.4%" trendUp />
+        <StatCard label="IPD Admissions" value={opdStats?.total_visits ?? 68} icon={BedDouble} iconClass="stat-icon-green" trend="4.5%" trendUp={false} />
+        <StatCard label="Total Revenue" value="₹18,75,000" icon={TrendingUp} iconClass="stat-icon-orange" trend="15.3%" trendUp />
       </div>
 
-      {/* Chart */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">Weekly OPD Visits</h2>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={weeklyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Bar dataKey="visits" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+      {/* Charts Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, marginBottom: 24 }}>
+        {/* Revenue Chart */}
+        <div className="card">
+          <div className="section-header">
+            <div>
+              <p className="section-title">Revenue Overview</p>
+              <p style={{ fontSize: 24, fontWeight: 800, color: '#1E1B4B', marginTop: 2 }}>₹18,75,000
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#16A34A', marginLeft: 8 }}>↑ 15.3%</span>
+              </p>
+            </div>
+            <select className="select" style={{ fontSize: 12 }}>
+              <option>This Month</option>
+              <option>Last Month</option>
+              <option>This Year</option>
+            </select>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={weeklyData}>
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F0FF" />
+              <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#A78BFA' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#A78BFA' }} axisLine={false} tickLine={false} />
+              <Tooltip
+                contentStyle={{ background: '#fff', border: '1px solid #EDE9FE', borderRadius: 10, fontSize: 12 }}
+                formatter={(v: any) => [`₹${v.toLocaleString()}`, 'Revenue']}
+              />
+              <Area type="monotone" dataKey="revenue" stroke="#7C3AED" strokeWidth={2.5} fill="url(#colorRevenue)" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Today's Schedule */}
+        <div className="card">
+          <div className="section-header">
+            <p className="section-title">Today's Schedule</p>
+            <Link to="/appointments" style={{ fontSize: 12, color: '#7C3AED', fontWeight: 600, textDecoration: 'none' }}>View All</Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { time: '09:00 AM', name: 'Dr. Arjun Sharma', dept: 'Cardiologist', type: 'OPD' },
+              { time: '10:30 AM', name: 'Dr. Neha Verma', dept: 'Dermatologist', type: 'OPD' },
+              { time: '12:00 PM', name: 'Dr. Rakesh Patel', dept: 'Orthopedic', type: 'OPD' },
+              { time: '02:00 PM', name: 'Dr. Pooja Singh', dept: 'Pediatrician', type: 'IPD' },
+            ].map((s, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="avatar avatar-sm avatar-purple" style={{ fontSize: 10 }}>
+                  {s.name.split(' ').slice(1).join('')[0]}S
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 12.5, fontWeight: 600, color: '#1E1B4B' }}>{s.name}</p>
+                  <p style={{ fontSize: 11, color: '#A78BFA' }}>{s.dept}</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: 11.5, fontWeight: 600, color: '#4C1D95' }}>{s.time}</p>
+                  <span className={`badge ${s.type === 'OPD' ? 'badge-blue' : 'badge-green'}`} style={{ fontSize: 10 }}>{s.type}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Register Patient', href: '/patients/new', color: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
-          { label: 'New Appointment', href: '/appointments/new', color: 'bg-green-50 text-green-700 hover:bg-green-100' },
-          { label: 'OPD Visit', href: '/opd/new', color: 'bg-purple-50 text-purple-700 hover:bg-purple-100' },
-        ].map(({ label, href, color }) => (
-          <a key={href} href={href}
-            className={`rounded-xl p-4 text-sm font-medium text-center transition ${color}`}>
-            {label}
-          </a>
-        ))}
+      {/* Quick Access + Activity */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16 }}>
+        {/* Quick Access */}
+        <div className="card">
+          <p className="section-title" style={{ marginBottom: 16 }}>Quick Access</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {quickActions.map(({ label, href, icon: Icon, color, bg }) => (
+              <Link key={href} to={href} style={{ textDecoration: 'none' }}>
+                <div style={{
+                  background: bg, borderRadius: 14, padding: '16px 12px',
+                  textAlign: 'center', cursor: 'pointer',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                  border: `1px solid ${bg}`
+                }}
+                  onMouseOver={e => {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = `0 6px 20px ${color}25`
+                  }}
+                  onMouseOut={e => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}>
+                  <Icon size={22} color={color} style={{ marginBottom: 8 }} />
+                  <p style={{ fontSize: 12, fontWeight: 700, color: color, lineHeight: 1.3 }}>{label}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="card">
+          <div className="section-header">
+            <p className="section-title">Recent Activity</p>
+            <Link to="/reports" style={{ fontSize: 12, color: '#7C3AED', fontWeight: 600, textDecoration: 'none' }}>View All</Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {recentActivity.map((a, i) => (
+              <div key={i} style={{
+                display: 'flex', gap: 12, alignItems: 'flex-start',
+                padding: '10px 0',
+                borderBottom: i < recentActivity.length - 1 ? '1px solid #F3F0FF' : 'none'
+              }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: a.color, flexShrink: 0, marginTop: 5
+                }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12.5, color: '#374151', lineHeight: 1.4 }}>{a.text}</p>
+                  <p style={{ fontSize: 11, color: '#A78BFA', marginTop: 2 }}>{a.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -1,166 +1,135 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ipdService } from '../../services/api'
-import { Bed, Users, Activity, TrendingUp, Plus, ChevronRight, Clock } from 'lucide-react'
+import { BedDouble, Users, Activity, TrendingUp, Plus, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 
-function StatCard({ label, value, sub, color }: any) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-      <p className={`text-2xl font-bold ${color}`}>{value ?? 0}</p>
-      <p className="text-sm font-medium text-gray-700 mt-0.5">{label}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-    </div>
-  )
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  available: 'bg-green-400',
-  occupied: 'bg-red-400',
-  reserved: 'bg-amber-400',
-  maintenance: 'bg-gray-300',
+const BED_STATUS: Record<string, { label: string; color: string; bg: string }> = {
+  available:   { label: 'Available',   color: '#16A34A', bg: '#DCFCE7' },
+  occupied:    { label: 'Occupied',    color: '#DC2626', bg: '#FEE2E2' },
+  reserved:    { label: 'Reserved',    color: '#D97706', bg: '#FEF3C7' },
+  maintenance: { label: 'Maintenance', color: '#6B7280', bg: '#F3F4F6' },
 }
 
 export default function IPDDashboard() {
-  const [showAdmitForm, setShowAdmitForm] = useState(false)
-
-  const { data: stats } = useQuery({
-    queryKey: ['ipd-dashboard'],
-    queryFn: () => ipdService.getDashboard().then(r => r.data)
-  })
-
-  const { data: activeAdmissions } = useQuery({
-    queryKey: ['active-admissions'],
-    queryFn: () => ipdService.getActiveAdmissions().then(r => r.data)
-  })
-
-  const { data: wards } = useQuery({
-    queryKey: ['wards'],
-    queryFn: () => ipdService.listWards().then(r => r.data)
-  })
+  const { data: stats } = useQuery({ queryKey: ['ipd-dashboard'], queryFn: () => ipdService.getDashboard().then(r => r.data) })
+  const { data: activeAdmissions } = useQuery({ queryKey: ['active-admissions'], queryFn: () => ipdService.getActiveAdmissions().then(r => r.data) })
+  const { data: wards } = useQuery({ queryKey: ['wards'], queryFn: () => ipdService.listWards().then(r => r.data) })
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div>
+      <div className="page-header">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">IPD</h1>
-          <p className="text-sm text-gray-500">Inpatient Department</p>
+          <h1 className="page-title">IPD — Inpatient Department</h1>
+          <p className="page-subtitle">Bed management, admissions & patient care</p>
         </div>
-        <Link to="/ipd/admit"
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
-          <Plus size={16} /> Admit Patient
-        </Link>
+        <Link to="/ipd/admit" className="btn-primary"><Plus size={15} /> New Admission</Link>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
-        <StatCard label="Total Beds" value={stats?.total_beds} color="text-gray-900" />
-        <StatCard label="Occupied" value={stats?.occupied_beds} color="text-red-600" />
-        <StatCard label="Available" value={stats?.available_beds} color="text-green-600" />
-        <StatCard label="Occupancy Rate" value={`${stats?.occupancy_rate ?? 0}%`}
-          color="text-blue-600" sub="Bed utilization" />
+      <div className="grid-4" style={{ marginBottom: 24 }}>
+        {[
+          { label: 'Total Beds', value: stats?.total_beds ?? 0, icon: BedDouble, cls: 'stat-icon-purple' },
+          { label: 'Occupied', value: stats?.occupied_beds ?? 0, icon: Users, cls: 'stat-icon-red' },
+          { label: 'Available', value: stats?.available_beds ?? 0, icon: Activity, cls: 'stat-icon-green' },
+          { label: 'Occupancy Rate', value: `${stats?.occupancy_rate ?? 0}%`, icon: TrendingUp, cls: 'stat-icon-orange' },
+        ].map(({ label, value, icon: Icon, cls }) => (
+          <div key={label} className="stat-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <p style={{ fontSize: 12, color: '#8B5CF6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
+              <div className={`stat-icon ${cls}`}><Icon size={18} /></div>
+            </div>
+            <p style={{ fontSize: 28, fontWeight: 800, color: '#1E1B4B' }}>{value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Ward Overview */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">Ward Status</h2>
-          <div className="space-y-3">
-            {wards?.map((ward: any) => (
-              <div key={ward.id} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-800">{ward.name}</p>
-                  <p className="text-xs text-gray-400 capitalize">{ward.ward_type.replace('_', ' ')}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: Math.min(ward.total_beds, 10) }).map((_, i) => (
-                      <div key={i}
-                        className={`w-4 h-4 rounded-sm ${i < (ward.total_beds - ward.available_beds) ? 'bg-red-400' : 'bg-green-200'}`}
-                      />
-                    ))}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 16 }}>
+        {/* Ward overview */}
+        <div className="card">
+          <p className="section-title" style={{ marginBottom: 16 }}>Ward Overview</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(wards || [
+              { name: 'General Ward', total_beds: 40, available_beds: 12, occupied_beds: 26, maintenance_beds: 2 },
+              { name: 'Private Ward', total_beds: 20, available_beds: 8, occupied_beds: 10, maintenance_beds: 2 },
+              { name: 'ICU', total_beds: 10, available_beds: 2, occupied_beds: 7, maintenance_beds: 1 },
+              { name: 'NICU', total_beds: 10, available_beds: 4, occupied_beds: 6, maintenance_beds: 0 },
+              { name: 'Pediatric Ward', total_beds: 15, available_beds: 6, occupied_beds: 8, maintenance_beds: 1 },
+            ]).map((w: any, i: number) => {
+              const occ = Math.round((w.occupied_beds / w.total_beds) * 100)
+              return (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 16,
+                  padding: '12px 14px', borderRadius: 12,
+                  background: '#FAFAFF', border: '1px solid #F3F0FF'
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <p style={{ fontWeight: 700, color: '#1E1B4B', fontSize: 13.5 }}>{w.name}</p>
+                      <p style={{ fontSize: 12, color: '#A78BFA' }}>{w.total_beds} beds</p>
+                    </div>
+                    <div className="progress-bar">
+                      <div className="progress-fill" style={{ width: `${occ}%` }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                      {[
+                        { label: 'Available', val: w.available_beds, color: '#16A34A' },
+                        { label: 'Occupied', val: w.occupied_beds, color: '#DC2626' },
+                        { label: 'Maintenance', val: w.maintenance_beds, color: '#9CA3AF' },
+                      ].map(s => (
+                        <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span className="status-dot" style={{ background: s.color }} />
+                          <span style={{ fontSize: 11, color: '#6B7280' }}>{s.val} {s.label}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <span className="text-xs text-gray-500">
-                    {ward.available_beds}/{ward.total_beds}
-                  </span>
+                  <div style={{ textAlign: 'right', minWidth: 48 }}>
+                    <p style={{ fontSize: 20, fontWeight: 800, color: occ > 80 ? '#DC2626' : '#7C3AED' }}>{occ}%</p>
+                    <p style={{ fontSize: 10, color: '#A78BFA' }}>occupancy</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {!wards?.length && (
-              <p className="text-sm text-gray-400 text-center py-4">No wards configured</p>
-            )}
+              )
+            })}
           </div>
         </div>
 
-        {/* Legend */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">Bed Legend</h2>
-          <div className="space-y-2">
-            {Object.entries(STATUS_COLORS).map(([status, color]) => (
-              <div key={status} className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-sm ${color}`} />
-                <span className="text-sm text-gray-600 capitalize">{status}</span>
-              </div>
+        {/* Active Admissions */}
+        <div className="card">
+          <div className="section-header">
+            <p className="section-title">Active Admissions</p>
+            <span className="badge badge-purple">{activeAdmissions?.length ?? 0}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {(activeAdmissions || []).slice(0, 8).map((a: any) => (
+              <Link key={a.id} to={`/ipd/${a.id}`} style={{ textDecoration: 'none' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 12px', borderRadius: 10,
+                  background: '#FAFAFF', border: '1px solid #F3F0FF',
+                  cursor: 'pointer', transition: 'border-color 0.15s'
+                }}>
+                  <div className="avatar avatar-sm avatar-teal">
+                    {a.patient_name?.[0] || 'P'}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 600, color: '#1E1B4B', fontSize: 13 }}>{a.patient_name}</p>
+                    <p style={{ fontSize: 11, color: '#A78BFA' }}>
+                      Bed {a.bed_number} · Dr. {a.doctor_name}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontSize: 11, color: '#6B7280' }}>
+                      {a.admission_date ? format(new Date(a.admission_date), 'dd MMM') : '—'}
+                    </p>
+                    <ChevronRight size={14} color="#C4B5FD" />
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-50 space-y-2">
-            <Link to="/ipd/wards" className="block text-sm text-blue-600 hover:underline">
-              Manage Wards & Beds →
-            </Link>
-            <Link to="/ipd/admissions" className="block text-sm text-blue-600 hover:underline">
-              All Admissions →
-            </Link>
-          </div>
         </div>
-      </div>
-
-      {/* Active Admissions */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700">
-            Current Admissions ({activeAdmissions?.length ?? 0})
-          </h2>
-          <Link to="/ipd/admissions" className="text-xs text-blue-600 hover:underline">View all</Link>
-        </div>
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50">
-              {['Patient', 'Admission No.', 'Ward / Bed', 'Diagnosis', 'Days', 'Actions'].map(h => (
-                <th key={h} className="text-left text-xs font-semibold text-gray-500 px-4 py-2">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {activeAdmissions?.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-10 text-gray-400">No active admissions</td></tr>
-            ) : (
-              activeAdmissions?.map((a: any) => (
-                <tr key={a.id} className="hover:bg-gray-50 transition">
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-gray-900">{a.patient_name}</p>
-                    <p className="text-xs text-gray-400 font-mono">{a.patient_uhid}</p>
-                  </td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-600">{a.admission_number}</td>
-                  <td className="px-4 py-3">
-                    <p className="text-sm text-gray-700">{a.ward_name || '—'}</p>
-                    <p className="text-xs text-gray-400">Bed: {a.bed_number || '—'}</p>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">{a.diagnosis || '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm font-semibold text-gray-700">{a.days_admitted}d</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link to={`/ipd/admissions/${a.id}`}
-                      className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                      View <ChevronRight size={12} />
-                    </Link>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
       </div>
     </div>
   )

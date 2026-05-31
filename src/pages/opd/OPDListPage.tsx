@@ -1,124 +1,112 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { opdService } from '../../services/api'
-import { Plus, Stethoscope, ChevronRight, Calendar } from 'lucide-react'
+import { Plus, Search, Clock, CheckCircle, Stethoscope } from 'lucide-react'
 import { format } from 'date-fns'
 
-const STATUS_COLORS: Record<string, string> = {
-  waiting: 'bg-amber-100 text-amber-700',
-  in_consultation: 'bg-blue-100 text-blue-700',
-  completed: 'bg-green-100 text-green-700',
-  referred: 'bg-purple-100 text-purple-700',
+const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+  waiting:     { label: 'Waiting',     cls: 'badge-amber' },
+  in_progress: { label: 'In Progress', cls: 'badge-blue' },
+  completed:   { label: 'Completed',   cls: 'badge-green' },
+  cancelled:   { label: 'Cancelled',   cls: 'badge-red' },
 }
 
 export default function OPDListPage() {
+  const navigate = useNavigate()
+  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [status, setStatus] = useState('')
+  const [search, setSearch] = useState('')
+
+  const { data: visits, isLoading } = useQuery({
+    queryKey: ['opd-visits', date, status],
+    queryFn: () => opdService.listVisits({ visit_date: date, status: status || undefined }).then(r => r.data)
+  })
+
   const { data: stats } = useQuery({
     queryKey: ['opd-dashboard'],
     queryFn: () => opdService.getDashboard().then(r => r.data)
   })
 
-  const { data: visits, isLoading } = useQuery({
-    queryKey: ['opd-visits'],
-    queryFn: () => opdService.listVisits({ limit: 50 }).then(r => r.data)
-  })
-
-  const { data: followUps } = useQuery({
-    queryKey: ['follow-ups'],
-    queryFn: () => opdService.getFollowUps().then(r => r.data)
-  })
-
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div>
+      <div className="page-header">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">OPD</h1>
-          <p className="text-sm text-gray-500">Outpatient Department</p>
+          <h1 className="page-title">OPD — Outpatient</h1>
+          <p className="page-subtitle">Today's visits & consultations</p>
         </div>
-        <Link to="/opd/new"
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
-          <Plus size={16} /> New Visit
-        </Link>
+        <Link to="/opd/new" className="btn-primary"><Plus size={15} /> New Visit</Link>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
-          { label: "Today's Visits", value: stats?.today_visits ?? 0, color: 'text-blue-600' },
-          { label: 'Waiting', value: stats?.pending_consultations ?? 0, color: 'text-amber-600' },
-          { label: "Today's Follow-ups", value: stats?.today_follow_ups ?? 0, color: 'text-green-600' },
-          { label: 'Total Visits', value: stats?.total_visits ?? 0, color: 'text-purple-600' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <p className={`text-2xl font-bold ${color}`}>{value}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+          { label: "Today's Visits", value: stats?.today_visits ?? 0, color: '#7C3AED', bg: '#EDE9FE' },
+          { label: 'Waiting', value: stats?.pending_consultations ?? 0, color: '#D97706', bg: '#FEF3C7' },
+          { label: 'Completed', value: stats?.completed_today ?? 0, color: '#16A34A', bg: '#DCFCE7' },
+          { label: 'Follow-ups', value: stats?.today_follow_ups ?? 0, color: '#2563EB', bg: '#DBEAFE' },
+        ].map(({ label, value, color, bg }) => (
+          <div key={label} style={{ background: bg, borderRadius: 14, padding: '14px 16px', border: `1px solid ${bg}` }}>
+            <p style={{ fontSize: 11.5, color: color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
+            <p style={{ fontSize: 28, fontWeight: 800, color: color, marginTop: 4 }}>{value}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        {/* Visits Table */}
-        <div className="col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-700">Recent OPD Visits</h2>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {isLoading ? (
-              <div className="text-center py-12 text-gray-400">Loading...</div>
-            ) : visits?.length === 0 ? (
-              <div className="text-center py-12">
-                <Stethoscope size={36} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">No visits yet</p>
-              </div>
-            ) : (
-              visits?.map((v: any) => (
-                <Link key={v.id} to={`/opd/visits/${v.id}`}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-blue-50 transition">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {v.primary_diagnosis || 'No diagnosis'}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      <span className="font-mono">{v.visit_number}</span>
-                      {' • '}
-                      {format(new Date(v.visit_date), 'dd MMM yyyy, hh:mm a')}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${STATUS_COLORS[v.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {v.status?.replace('_', ' ')}
-                    </span>
-                    <ChevronRight size={16} className="text-gray-300" />
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <Search size={15} color="#A78BFA" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+          <input placeholder="Search patient name, UHID..." value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="input" style={{ paddingLeft: 40 }} />
         </div>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          className="input" style={{ width: 170 }} />
+        <select value={status} onChange={e => setStatus(e.target.value)} className="select">
+          <option value="">All Status</option>
+          {Object.entries(STATUS_CONFIG).map(([v, { label }]) => (
+            <option key={v} value={v}>{label}</option>
+          ))}
+        </select>
+      </div>
 
-        {/* Follow-ups */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">Upcoming Follow-ups</h2>
-            <Calendar size={14} className="text-gray-400" />
-          </div>
-          <div className="divide-y divide-gray-50">
-            {followUps?.length === 0 ? (
-              <div className="text-center py-8 text-gray-400 text-sm">No follow-ups</div>
-            ) : (
-              followUps?.map((f: any) => (
-                <Link key={f.visit_id} to={`/opd/visits/${f.visit_id}`}
-                  className="block px-4 py-3 hover:bg-blue-50 transition">
-                  <p className="text-xs font-medium text-gray-800">{format(new Date(f.follow_up_date), 'dd MMM yyyy')}</p>
-                  <p className="text-xs text-gray-400 font-mono mt-0.5">{f.visit_number}</p>
-                  {f.follow_up_notes && (
-                    <p className="text-xs text-gray-500 mt-1 truncate">{f.follow_up_notes}</p>
-                  )}
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
+      <div className="table-wrapper">
+        <table>
+          <thead><tr>
+            <th>Token</th><th>Patient</th><th>Doctor</th>
+            <th>Dept</th><th>Type</th><th>Status</th><th>Time</th>
+          </tr></thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: '#A78BFA' }}>Loading...</td></tr>
+            ) : (visits || []).filter((v: any) =>
+              !search || v.patient_name?.toLowerCase().includes(search.toLowerCase())
+            ).map((v: any) => (
+              <tr key={v.id} onClick={() => navigate(`/opd/${v.id}`)}>
+                <td>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#7C3AED' }}>{v.token_number || v.id}</span>
+                  </div>
+                </td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <div className="avatar avatar-sm avatar-purple">{v.patient_name?.[0] || 'P'}</div>
+                    <div>
+                      <p style={{ fontWeight: 600, color: '#1E1B4B', fontSize: 13 }}>{v.patient_name}</p>
+                      <p style={{ fontSize: 11, color: '#A78BFA', fontFamily: 'monospace' }}>{v.patient_uhid}</p>
+                    </div>
+                  </div>
+                </td>
+                <td style={{ color: '#4C1D95', fontWeight: 600, fontSize: 13 }}>{v.doctor_name || '—'}</td>
+                <td><span className="badge badge-blue" style={{ fontSize: 10 }}>{v.department || 'General'}</span></td>
+                <td><span className={`badge ${v.visit_type === 'follow_up' ? 'badge-teal' : 'badge-purple'}`} style={{ fontSize: 10, textTransform: 'capitalize' }}>{v.visit_type?.replace('_', ' ') || 'Consultation'}</span></td>
+                <td><span className={`badge ${STATUS_CONFIG[v.status]?.cls || 'badge-gray'}`}>{STATUS_CONFIG[v.status]?.label || v.status}</span></td>
+                <td style={{ color: '#6B7280', fontSize: 12 }}>{v.visit_time ? v.visit_time.slice(0, 5) : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
